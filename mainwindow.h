@@ -1,7 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QDebug>
 #include <QMainWindow>
+#include <QGraphicsScene>
+#include <QGraphicsEllipseItem>
 
 namespace Ui {
 class MainWindow;
@@ -17,6 +20,28 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    QGraphicsScene* scene;
+
+    uint8_t nmChambers;
+    uint8_t nmLayers;
+    uint8_t nmTubes;
+    qreal   diamTube;
+    qreal   radTube;
+
+    QVector< QVector < QVector < QGraphicsEllipseItem * > > > vTrackSystem;
+
+
+
+    void createConnections();
+    void cleanSystem();                                         // очищаем систему
+    void drawSystem();                                          // рисуем систему
+    void drawMaskTack(QVector<QPoint> vMask);                   // рисуем маску трека
+    void drawMaskTack(QList<QGraphicsEllipseItem *> lstHits);   // рисуем маску трека
+
+
+
+
 };
 
 #endif // MAINWINDOW_H

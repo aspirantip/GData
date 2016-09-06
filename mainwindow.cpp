@@ -9,13 +9,17 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setWindowTitle( "Генерация данных" );
 
 
+
     createConnections();
 
 
     scene = new QGraphicsScene();
     ui->gv_canvas->setScene( scene );
     ui->gv_canvas->update();
-    ui->gv_canvas->scale(1.5, 1.5);
+    //ui->gv_canvas->scale(1.5, 1.5);
+
+    l_track = new QGraphicsLineItem();
+
 
     nmChambers  = 2;
     nmLayers    = 3;
@@ -23,12 +27,14 @@ MainWindow::MainWindow(QWidget *parent) :
     diamTube    = 30.;
     radTube     = diamTube/2.;
 
-    QPen p_line;
-    p_line.setColor(Qt::red);
-    p_line.setWidth(1);
-    QGraphicsLineItem* l_track = scene->addLine( QLineF(20.0, 10.0, 200.0, 200.0), p_line);
 
     drawSystem();
+
+
+
+    createTrack( QLineF(20.0, 10.0, 200.0, 300.0) );
+    QList<QGraphicsEllipseItem *> maskTrack = getMaskTrack( l_track );
+    drawMaskTack( maskTrack );
 
 }
 
@@ -45,6 +51,7 @@ void MainWindow::createConnections()
 void MainWindow::drawSystem()
 {
     qDebug() << "MainWindow::drawSystem()";
+
 
     uint chambersPositionY = 50;
     uint chambersPositionX = 50;
@@ -90,15 +97,54 @@ void MainWindow::drawSystem()
 
 void MainWindow::cleanSystem()
 {
+    for (uint8_t ch = 0; ch < nmChambers; ++ch)
+    {
+        for (uint8_t lr = 0; lr < nmLayers; ++lr)
+        {
+            for (uint8_t tb = 0; tb < nmTubes; ++tb)
+            {
+                vTrackSystem[ch][lr][tb]->setBrush(QBrush(Qt::white));
+            }
+        }
+    }
 
+    delete l_track;
+
+    ui->gv_canvas->update();
 }
 
-void MainWindow::drawMaskTack(QVector<QPoint> vMask)
+void MainWindow::createTrack(QLineF line)
 {
+    QPen penLine;
+    penLine.setColor(Qt::red);
+    penLine.setWidth(1);
 
+    l_track = scene->addLine( line, penLine);
+}
+
+QList<QGraphicsEllipseItem *> MainWindow::getMaskTrack(QGraphicsLineItem* track)
+{
+    QGraphicsItem* crItem;
+    QGraphicsEllipseItem el;
+    QList<QGraphicsEllipseItem *> lstHits;
+
+    QList<QGraphicsItem *> lstItems = track->collidingItems();
+    foreach(crItem, lstItems)
+    {
+        if (crItem->type() == el.type()) {
+            QGraphicsEllipseItem *ellipse = qgraphicsitem_cast<QGraphicsEllipseItem *>(crItem);
+
+            lstHits << ellipse;
+        }
+    }
+
+    return lstHits;
 }
 
 void MainWindow::drawMaskTack(QList<QGraphicsEllipseItem *> lstHits)
 {
+    foreach (QGraphicsEllipseItem* crEllipseItem, lstHits)
+        crEllipseItem->setBrush(QBrush(Qt::green));
 
+    ui->gv_canvas->update();
 }

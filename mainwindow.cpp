@@ -32,9 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 
-    createTrack( QLineF(20.0, 10.0, 200.0, 300.0) );
-    QList<QGraphicsEllipseItem *> maskTrack = getMaskTrack( l_track );
-    drawMaskTack( maskTrack );
+    getInstance();
 
 }
 
@@ -147,4 +145,36 @@ void MainWindow::drawMaskTack(QList<QGraphicsEllipseItem *> lstHits)
         crEllipseItem->setBrush(QBrush(Qt::green));
 
     ui->gv_canvas->update();
+}
+
+void MainWindow::getInstance()
+{
+    createTrack( QLineF(20.0, 10.0, 200.0, 300.0) );
+    QList<QGraphicsEllipseItem *> maskTrack = getMaskTrack( l_track );
+    drawMaskTack( maskTrack );
+
+
+    // text format instance
+    // ==============================================================
+    for (uint8_t ch = 0; ch < nmChambers; ++ch)
+    {
+        for (uint8_t lr = 0; lr < nmLayers; ++lr)
+        {
+            for (uint8_t tb = 0; tb < nmTubes; ++tb)
+            {
+                bool f_hit = false;
+                foreach (QGraphicsEllipseItem * tube, maskTrack) {
+                    if (vTrackSystem[ch][lr][tb] == tube){
+                        f_hit = true;
+                        break;
+                    }
+                }
+
+                f_hit ? std::cout << 1 << " " : std::cout << 0 << " ";
+             }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+    }
+
 }

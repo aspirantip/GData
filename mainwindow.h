@@ -6,6 +6,9 @@
 #include <QGraphicsScene>
 #include <QGraphicsEllipseItem>
 
+
+#include <iostream>
+
 namespace Ui {
 class MainWindow;
 }
@@ -44,6 +47,7 @@ private:
     void drawMaskTack(QList<QGraphicsEllipseItem *> lstHits);   // рисуем маску трека
 
 
+    void getInstance();
 
 
 };

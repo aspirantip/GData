@@ -37,171 +37,121 @@
      <string>Выход</string>
     </property>
    </widget>
-   <widget class="QToolBox" name="toolBox">
+   <widget class="QProgressBar" name="progressBar">
     <property name="geometry">
      <rect>
-      <x>680</x>
-      <y>20</y>
-      <width>271</width>
-      <height>331</height>
+      <x>690</x>
+      <y>370</y>
+      <width>261</width>
+      <height>23</height>
      </rect>
     </property>
-    <property name="currentIndex">
-     <number>1</number>
+    <property name="value">
+     <number>0</number>
     </property>
-    <widget class="QWidget" name="page">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>271</width>
-       <height>275</height>
-      </rect>
-     </property>
-     <attribute name="label">
-      <string>Визуализация</string>
-     </attribute>
-     <widget class="QCheckBox" name="chbVisualizationTrack">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>0</y>
-        <width>221</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Трек</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="chbVisualizationMask">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>221</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Маска</string>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="page_2">
-     <property name="geometry">
-      <rect>
-       <x>0</x>
-       <y>0</y>
-       <width>271</width>
-       <height>275</height>
-      </rect>
-     </property>
-     <attribute name="label">
-      <string>Генерация данных</string>
-     </attribute>
-     <widget class="QPushButton" name="pbDataGenStart">
-      <property name="geometry">
-       <rect>
-        <x>50</x>
-        <y>230</y>
-        <width>80</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Старт</string>
-      </property>
-     </widget>
-     <widget class="QProgressBar" name="progressBar">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>200</y>
-        <width>261</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="value">
-       <number>0</number>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="pbDataGenStop">
-      <property name="geometry">
-       <rect>
-        <x>160</x>
-        <y>230</y>
-        <width>80</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Стоп</string>
-      </property>
-     </widget>
-     <widget class="QWidget" name="">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>0</y>
-        <width>241</width>
-        <height>25</height>
-       </rect>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Шум от</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="sbNoiseBottomLevel">
-         <property name="suffix">
-          <string> %</string>
-         </property>
-         <property name="prefix">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="sbNoiseTopLevel">
-         <property name="suffix">
-          <string> %</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>30</y>
-        <width>241</width>
-        <height>25</height>
-       </rect>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Отсутствие сигнала</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="sbNoSignal">
-         <property name="suffix">
-          <string> %</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </widget>
+   </widget>
+   <widget class="QPushButton" name="pbDataGenStart">
+    <property name="geometry">
+     <rect>
+      <x>730</x>
+      <y>400</y>
+      <width>80</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Старт</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pbDataGenStop">
+    <property name="geometry">
+     <rect>
+      <x>840</x>
+      <y>400</y>
+      <width>80</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Стоп</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>50</y>
+      <width>241</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Отсутствие сигнала</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="sbNoSignal">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string> %</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="layoutWidget_2">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>20</y>
+      <width>241</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Шум</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="sbNoiseLevel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="suffix">
+        <string> %</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QCheckBox" name="chbVisualization">
+    <property name="geometry">
+     <rect>
+      <x>690</x>
+      <y>340</y>
+      <width>261</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Визуализация</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">

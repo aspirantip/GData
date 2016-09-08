@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 
-    getInstance();
+    //getInstance();
 
 }
 
@@ -43,7 +43,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::createConnections()
 {
+    connect(ui->pbDataGenStart, &QPushButton::clicked, this, &MainWindow::startGenerationDataSet);
 
+    connect(ui->pbExit, &QPushButton::clicked, this, &MainWindow::closeApplication);
 }
 
 void MainWindow::drawSystem()
@@ -106,18 +108,24 @@ void MainWindow::cleanSystem()
         }
     }
 
-    delete l_track;
 
     ui->gv_canvas->update();
 }
 
 void MainWindow::createTrack(QLineF line)
 {
+    deleteTrack();
+
     QPen penLine;
     penLine.setColor(Qt::red);
     penLine.setWidth(1);
 
     l_track = scene->addLine( line, penLine);
+}
+
+void MainWindow::deleteTrack()
+{
+    delete l_track;
 }
 
 QList<QGraphicsEllipseItem *> MainWindow::getMaskTrack(QGraphicsLineItem* track)
@@ -131,7 +139,6 @@ QList<QGraphicsEllipseItem *> MainWindow::getMaskTrack(QGraphicsLineItem* track)
     {
         if (crItem->type() == el.type()) {
             QGraphicsEllipseItem *ellipse = qgraphicsitem_cast<QGraphicsEllipseItem *>(crItem);
-
             lstHits << ellipse;
         }
     }
@@ -149,9 +156,33 @@ void MainWindow::drawMaskTack(QList<QGraphicsEllipseItem *> lstHits)
 
 void MainWindow::getInstance()
 {
-    createTrack( QLineF(20.0, 10.0, 200.0, 300.0) );
+    /*
+     * 1) задать линию
+     *      а) обе точки прямой задаются случайным образом
+     *      б) устанавливается минимально возможный шаг для смещения линии и
+     *         создается N (например 100) образцов с лучайным шумом
+     *         и случайным количеством отсутствующих хитов (тут тоже надо подойти с умом)
+     * 2) ищем маску
+     * 3) конвертируем в текстовый формат или формат Mat OpenCV
+     * 4) сохраняем в БД
+     *
+     *  добавить образцы просто с шумом и образцы где трек прошел только через часть детекторов
+     */
+
+    const int field (diamTube*nmTubes + radTube);
+    float x1 = rand() % field + 50;
+    float x2 = rand() % field + 50;
+    const float y1 = 0.0;
+    const float y2 = 300.0;
+
+    createTrack( QLineF(x1, y1, x2, y2) );
     QList<QGraphicsEllipseItem *> maskTrack = getMaskTrack( l_track );
-    drawMaskTack( maskTrack );
+
+    if (ui->chbVisualization->isChecked()){
+        cleanSystem();
+        drawMaskTack( maskTrack );
+
+    }
 
 
     // text format instance
@@ -172,9 +203,35 @@ void MainWindow::getInstance()
 
                 f_hit ? std::cout << 1 << " " : std::cout << 0 << " ";
              }
-            std::cout << std::endl;
+            //std::cout << std::endl;
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
+    }
+
+    std::cout << std::endl;
+
+}
+
+void MainWindow::startGenerationDataSet()
+{
+    const uint32_t numInstance = 10;
+    for (uint32_t cnt = 0; cnt <= numInstance; ++cnt)
+    {
+        std::cout << "#" << cnt << "\t";
+        getInstance();
+
     }
 
 }
+
+void MainWindow::stopGenerationDataSet()
+{
+
+}
+
+void MainWindow::closeApplication()
+{
+    close();
+}
+
+

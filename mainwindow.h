@@ -41,6 +41,7 @@ private:
     void cleanSystem();                                         // очищаем систему
 
     void createTrack(QLineF line);
+    void deleteTrack();
     QList<QGraphicsEllipseItem *> getMaskTrack(QGraphicsLineItem* track);
 
     void drawSystem();                                          // рисуем систему
@@ -48,6 +49,13 @@ private:
 
 
     void getInstance();
+
+
+public slots:
+    void startGenerationDataSet();
+    void stopGenerationDataSet();
+
+    void closeApplication();
 
 
 };

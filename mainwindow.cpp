@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->gv_canvas->update();
     //ui->gv_canvas->scale(1.5, 1.5);
 
-    l_track = new QGraphicsLineItem();
+    track = new QGraphicsLineItem();
 
 
     nmChambers  = 2;
@@ -30,10 +30,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     drawSystem();
 
-
-
-    //getInstance();
-
 }
 
 MainWindow::~MainWindow()
@@ -43,9 +39,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::createConnections()
 {
+    // PushButton
     connect(ui->pbDataGenStart, &QPushButton::clicked, this, &MainWindow::startGenerationDataSet);
-
+    connect(ui->pbDataGenStop,  &QPushButton::clicked, this, &MainWindow::stopGenerationDataSet);
     connect(ui->pbExit, &QPushButton::clicked, this, &MainWindow::closeApplication);
+
+
+    connect(ui->chbVisualization, &QCheckBox::stateChanged, this, &MainWindow::changeStateVisualization);
 }
 
 void MainWindow::drawSystem()
@@ -97,6 +97,11 @@ void MainWindow::drawSystem()
 
 void MainWindow::cleanSystem()
 {
+    qDebug() << "cleanSystem";
+
+    deleteTrack();
+
+
     for (uint8_t ch = 0; ch < nmChambers; ++ch)
     {
         for (uint8_t lr = 0; lr < nmLayers; ++lr)
@@ -108,7 +113,6 @@ void MainWindow::cleanSystem()
         }
     }
 
-
     ui->gv_canvas->update();
 }
 
@@ -117,15 +121,18 @@ void MainWindow::createTrack(QLineF line)
     deleteTrack();
 
     QPen penLine;
-    penLine.setColor(Qt::red);
-    penLine.setWidth(1);
+    penLine.setColor( Qt::red );
+    penLine.setWidth( 1 );
 
-    l_track = scene->addLine( line, penLine);
+    track = scene->addLine( line, penLine);
 }
 
 void MainWindow::deleteTrack()
 {
-    delete l_track;
+    if (track != nullptr){
+        delete track;
+        track = nullptr;
+    }
 }
 
 QList<QGraphicsEllipseItem *> MainWindow::getMaskTrack(QGraphicsLineItem* track)
@@ -154,7 +161,7 @@ void MainWindow::drawMaskTack(QList<QGraphicsEllipseItem *> lstHits)
     ui->gv_canvas->update();
 }
 
-void MainWindow::getInstance()
+void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 {
     /*
      * 1) задать линию
@@ -170,19 +177,36 @@ void MainWindow::getInstance()
      */
 
     const int field (diamTube*nmTubes + radTube);
-    float x1 = rand() % field + 50;
-    float x2 = rand() % field + 50;
-    const float y1 = 0.0;
-    const float y2 = 300.0;
 
-    createTrack( QLineF(x1, y1, x2, y2) );
-    QList<QGraphicsEllipseItem *> maskTrack = getMaskTrack( l_track );
 
-    if (ui->chbVisualization->isChecked()){
-        cleanSystem();
-        drawMaskTack( maskTrack );
+    cleanSystem();
+    maskTrack.clear();
 
+
+    // type of sample
+    // ==============================================================
+    if (f_track){
+        float x1 = rand() % field + 50;
+        float x2 = rand() % field + 50;
+        const float y1 = 0.0;
+        const float y2 = 300.0;
+        l_track = QLineF(x1, y1, x2, y2);
+        createTrack( l_track );
+        maskTrack = getMaskTrack( track );
     }
+
+
+    // add noise
+    // ==============================================================
+
+
+
+    // visualization
+    // ==============================================================
+    if (ui->chbVisualization->isChecked())
+        drawMaskTack( maskTrack );
+    else
+        deleteTrack();
 
 
     // text format instance
@@ -214,19 +238,38 @@ void MainWindow::getInstance()
 
 void MainWindow::startGenerationDataSet()
 {
-    const uint32_t numInstance = 10;
-    for (uint32_t cnt = 0; cnt <= numInstance; ++cnt)
+    const uint32_t numInstance = 1;
+    bool f_track = true;
+    uint8_t levelNoise = 0;
+
+    for (uint32_t cnt = 0; cnt < numInstance; ++cnt)
     {
+        f_track = rand()%2;
+        std::cout << "f_track = " << f_track << "\n";
+
         std::cout << "#" << cnt << "\t";
-        getInstance();
+        getInstance(f_track, levelNoise);
 
     }
+     std::cout << std::endl;
 
 }
 
 void MainWindow::stopGenerationDataSet()
 {
 
+}
+
+void MainWindow::changeStateVisualization()
+{
+    qDebug() << "changeStateVisualization()";
+
+    if (ui->chbVisualization->isChecked()){
+        createTrack( l_track );
+        drawMaskTack( maskTrack );
+    }
+    else
+        cleanSystem();
 }
 
 void MainWindow::closeApplication()

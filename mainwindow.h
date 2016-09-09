@@ -25,7 +25,8 @@ private:
     Ui::MainWindow *ui;
 
     QGraphicsScene* scene;
-    QGraphicsLineItem* l_track;
+    QGraphicsLineItem* track;
+    QLineF l_track;
 
     uint8_t nmChambers;
     uint8_t nmLayers;
@@ -43,17 +44,19 @@ private:
     void createTrack(QLineF line);
     void deleteTrack();
     QList<QGraphicsEllipseItem *> getMaskTrack(QGraphicsLineItem* track);
+    QList<QGraphicsEllipseItem *> maskTrack;
 
     void drawSystem();                                          // рисуем систему
     void drawMaskTack(QList<QGraphicsEllipseItem *> lstHits);   // рисуем маску трека
 
 
-    void getInstance();
+    void getInstance(bool f_track, uint8_t levelNoise);
 
 
 public slots:
     void startGenerationDataSet();
     void stopGenerationDataSet();
+    void changeStateVisualization();
 
     void closeApplication();
 

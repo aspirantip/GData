@@ -7,8 +7,13 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     this->setWindowTitle( "Генерация данных" );
+    ui->chbVisualization->setChecked( true );
+    ui->sbNoiseLevel->setValue( 10 );
 
 
+    brHit   = QBrush(Qt::green);
+    brNoise = QBrush(Qt::gray);
+    brClean = QBrush(Qt::white);
 
     createConnections();
 
@@ -97,7 +102,7 @@ void MainWindow::drawSystem()
 
 void MainWindow::cleanSystem()
 {
-    qDebug() << "cleanSystem";
+    //qDebug() << "cleanSystem";
 
     deleteTrack();
 
@@ -108,7 +113,7 @@ void MainWindow::cleanSystem()
         {
             for (uint8_t tb = 0; tb < nmTubes; ++tb)
             {
-                vTrackSystem[ch][lr][tb]->setBrush(QBrush(Qt::white));
+                vTrackSystem[ch][lr][tb]->setBrush( brClean );
             }
         }
     }
@@ -156,7 +161,7 @@ QList<QGraphicsEllipseItem *> MainWindow::getMaskTrack(QGraphicsLineItem* track)
 void MainWindow::drawMaskTack(QList<QGraphicsEllipseItem *> lstHits)
 {
     foreach (QGraphicsEllipseItem* crEllipseItem, lstHits)
-        crEllipseItem->setBrush(QBrush(Qt::green));
+        crEllipseItem->setBrush( brHit );
 
     ui->gv_canvas->update();
 }
@@ -198,8 +203,27 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 
     // add noise
     // ==============================================================
+    if (levelNoise > 0){
+        qDebug() << "noise info:";
+        qDebug() << "=====================================";
+        for (uint8_t ind = 0; ind < levelNoise; ++ind){
+            uint8_t nmChamber = rand() % nmChambers;
+            uint8_t nmLayer = rand() % nmLayers;
+            uint8_t nmTube = rand() % nmTubes;
 
+            qDebug() << "||   hit: " << ind;
+            qDebug() << "||   ================================";
+            qDebug() << "||   number of chamber: " << nmChamber;
+            qDebug() << "||   number of layer:   " << nmLayer;
+            qDebug() << "||   number of tube:    " << nmTube;
+            qDebug() << "||   ================================";
+            qDebug() << "||";
 
+            if (vTrackSystem[nmChamber][nmLayer][nmTube]->brush() != brHit)
+                vTrackSystem[nmChamber][nmLayer][nmTube]->setBrush( brNoise );
+        }
+        qDebug() << "=====================================\n";
+    }
 
     // visualization
     // ==============================================================
@@ -211,6 +235,7 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 
     // text format instance
     // ==============================================================
+    std::cout << "data of track: ";
     for (uint8_t ch = 0; ch < nmChambers; ++ch)
     {
         for (uint8_t lr = 0; lr < nmLayers; ++lr)
@@ -239,19 +264,34 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 void MainWindow::startGenerationDataSet()
 {
     const uint32_t numInstance = 1;
+
     bool f_track = true;
+    float onePercent = (nmChambers * nmLayers * nmTubes)/100.0;
+    float maxLevel = ui->sbNoiseLevel->value();
+    uint8_t topLevelNoise = onePercent * maxLevel;
     uint8_t levelNoise = 0;
+
+
 
     for (uint32_t cnt = 0; cnt < numInstance; ++cnt)
     {
         f_track = rand()%2;
-        std::cout << "f_track = " << f_track << "\n";
 
-        std::cout << "#" << cnt << "\t";
+        if (topLevelNoise)
+            levelNoise = rand() % topLevelNoise + 1;
+
+
+        // debug information
+        // ==============================================================
+        qDebug() << "Track #" << cnt << "\t";
+        qDebug() << "f_track = " << f_track;
+        qDebug() << "levelNoise = " << levelNoise;
+        qDebug() << "topLevelNoise = " << topLevelNoise << "\n";
+
+
         getInstance(f_track, levelNoise);
 
     }
-     std::cout << std::endl;
 
 }
 

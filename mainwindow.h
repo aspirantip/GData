@@ -34,6 +34,10 @@ private:
     qreal   diamTube;
     qreal   radTube;
 
+    QBrush brHit;
+    QBrush brClean;
+    QBrush brNoise;
+
     QVector< QVector < QVector < QGraphicsEllipseItem * > > > vTrackSystem;
 
 

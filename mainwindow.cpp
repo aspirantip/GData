@@ -258,12 +258,14 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
     }
 
     std::cout << std::endl;
-
 }
 
 void MainWindow::startGenerationDataSet()
 {
-    const uint32_t numInstance = 1;
+    ui->statusBar->showMessage( tr("Data generation ..."));
+
+    const uint32_t numInstance = 10000;
+    const uint32_t one_percent = numInstance/100;
 
     bool f_track = true;
     float onePercent = (nmChambers * nmLayers * nmTubes)/100.0;
@@ -290,9 +292,10 @@ void MainWindow::startGenerationDataSet()
 
 
         getInstance(f_track, levelNoise);
-
+        ui->prbProgress->setValue( (cnt+1)/one_percent );
     }
 
+    ui->statusBar->showMessage(tr("Data generation is complete."));
 }
 
 void MainWindow::stopGenerationDataSet()

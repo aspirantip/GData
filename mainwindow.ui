@@ -37,7 +37,7 @@
      <string>Выход</string>
     </property>
    </widget>
-   <widget class="QProgressBar" name="progressBar">
+   <widget class="QProgressBar" name="prbProgress">
     <property name="geometry">
      <rect>
       <x>690</x>

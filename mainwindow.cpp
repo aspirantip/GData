@@ -7,7 +7,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     this->setWindowTitle( "Генерация данных" );
-    ui->chbVisualization->setChecked( true );
+    //ui->chbVisualization->setChecked( true );
     ui->sbNoiseLevel->setValue( 10 );
 
 
@@ -35,6 +35,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     drawSystem();
 
+    // Initialization state machine
+    // ====================================================
+    //stateMachine = new QStateMachine(this);
+    createStates();
+    createTransitions();
+    stateMachine.setInitialState(initState);
+    QTimer::singleShot(0, &stateMachine, SLOT(start()));
 }
 
 MainWindow::~MainWindow()
@@ -45,12 +52,50 @@ MainWindow::~MainWindow()
 void MainWindow::createConnections()
 {
     // PushButton
-    connect(ui->pbDataGenStart, &QPushButton::clicked, this, &MainWindow::startGenerationDataSet);
-    connect(ui->pbDataGenStop,  &QPushButton::clicked, this, &MainWindow::stopGenerationDataSet);
-    connect(ui->pbExit, &QPushButton::clicked, this, &MainWindow::closeApplication);
+    //connect(ui->pbDataGenStart, &QPushButton::clicked, this, &MainWindow::startGenerationDataSet);
+    //connect(ui->pbDataGenStop,  &QPushButton::clicked, this, &MainWindow::stopGenerationDataSet);
+    //connect(ui->pbExit, &QPushButton::clicked, this, &MainWindow::closeApplication);
+
+    connect(&runningState, &QState::entered, this, &MainWindow::startGenerationDataSet);
+    connect(&stateMachine, &QStateMachine::finished, this, &MainWindow::closeApplication);
 
 
     connect(ui->chbVisualization, &QCheckBox::stateChanged, this, &MainWindow::changeStateVisualization);
+}
+
+void MainWindow::createStates()
+{
+    qDebug() << "createStates()";
+
+    initState = new QState(&stateMachine);
+    initState->assignProperty(ui->chbVisualization, "checked", true);
+    initState->assignProperty(ui->pbDataGenStop,    "enabled", false);
+
+
+    normalState = new QState(&stateMachine);
+    runningState.setParent(normalState);
+    runningState.assignProperty(ui->pbDataGenStart, "enabled", false);
+    runningState.assignProperty(ui->pbDataGenStop,  "enabled", true);
+    runningState.assignProperty(this, "running", true);
+
+    stoppedState = new QState(normalState);
+    stoppedState->assignProperty(ui->pbDataGenStart, "enabled", true);
+    stoppedState->assignProperty(ui->pbDataGenStop,  "enabled", false);
+    stoppedState->assignProperty(this, "running", false);
+
+    finalState = new QFinalState(&stateMachine);
+
+}
+
+void MainWindow::createTransitions()
+{
+    qDebug() << "createTransitions()";
+
+    initState->addTransition(initState, SIGNAL(propertiesAssigned()), stoppedState);
+    normalState->addTransition(ui->pbExit, SIGNAL(clicked()), finalState);
+    runningState.addTransition(ui->pbDataGenStop, SIGNAL(clicked()), stoppedState);
+    runningState.addTransition(this, SIGNAL(stoppedGenerationDataSet()), stoppedState);
+    stoppedState->addTransition(ui->pbDataGenStart, SIGNAL(clicked()), &runningState);
 }
 
 void MainWindow::drawSystem()
@@ -185,7 +230,8 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 
 
     cleanSystem();
-    maskTrack.clear();
+    lstHitsTrack.clear();
+    lstHitsNoise.clear();
 
 
     // type of sample
@@ -197,38 +243,47 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
         const float y2 = 300.0;
         l_track = QLineF(x1, y1, x2, y2);
         createTrack( l_track );
-        maskTrack = getMaskTrack( track );
+        lstHitsTrack = getMaskTrack( track );
     }
 
 
     // add noise
     // ==============================================================
     if (levelNoise > 0){
-        qDebug() << "noise info:";
-        qDebug() << "=====================================";
+        bool f_dbg_noise = false;
+        if (f_dbg_noise){
+            qDebug() << "noise info:";
+            qDebug() << "=====================================";
+        }
         for (uint8_t ind = 0; ind < levelNoise; ++ind){
             uint8_t nmChamber = rand() % nmChambers;
             uint8_t nmLayer = rand() % nmLayers;
             uint8_t nmTube = rand() % nmTubes;
+            if (f_dbg_noise){
+                qDebug() << "||   hit: " << ind;
+                qDebug() << "||   ================================";
+                qDebug() << "||   number of chamber: " << nmChamber;
+                qDebug() << "||   number of layer:   " << nmLayer;
+                qDebug() << "||   number of tube:    " << nmTube;
+                qDebug() << "||   ================================";
+                qDebug() << "||";
+            }
 
-            qDebug() << "||   hit: " << ind;
-            qDebug() << "||   ================================";
-            qDebug() << "||   number of chamber: " << nmChamber;
-            qDebug() << "||   number of layer:   " << nmLayer;
-            qDebug() << "||   number of tube:    " << nmTube;
-            qDebug() << "||   ================================";
-            qDebug() << "||";
 
+            // проверяем, что данная трубка не входит в список listHitsTrack
+            // если все норм то добавляем данную трубку в lstHitsNoise
             if (vTrackSystem[nmChamber][nmLayer][nmTube]->brush() != brHit)
                 vTrackSystem[nmChamber][nmLayer][nmTube]->setBrush( brNoise );
         }
-        qDebug() << "=====================================\n";
+
+        if (f_dbg_noise)
+            qDebug() << "=====================================\n";
     }
 
     // visualization
     // ==============================================================
     if (ui->chbVisualization->isChecked())
-        drawMaskTack( maskTrack );
+        drawMaskTack( lstHitsTrack );
     else
         deleteTrack();
 
@@ -243,7 +298,7 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
             for (uint8_t tb = 0; tb < nmTubes; ++tb)
             {
                 bool f_hit = false;
-                foreach (QGraphicsEllipseItem * tube, maskTrack) {
+                foreach (QGraphicsEllipseItem * tube, lstHitsTrack) {
                     if (vTrackSystem[ch][lr][tb] == tube){
                         f_hit = true;
                         break;
@@ -262,10 +317,12 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 
 void MainWindow::startGenerationDataSet()
 {
+
     ui->statusBar->showMessage( tr("Data generation ..."));
 
     const uint32_t numInstance = 10000;
     const uint32_t one_percent = numInstance/100;
+
 
     bool f_track = true;
     float onePercent = (nmChambers * nmLayers * nmTubes)/100.0;
@@ -295,7 +352,10 @@ void MainWindow::startGenerationDataSet()
         ui->prbProgress->setValue( (cnt+1)/one_percent );
     }
 
+
     ui->statusBar->showMessage(tr("Data generation is complete."));
+    emit stoppedGenerationDataSet();
+
 }
 
 void MainWindow::stopGenerationDataSet()
@@ -309,7 +369,7 @@ void MainWindow::changeStateVisualization()
 
     if (ui->chbVisualization->isChecked()){
         createTrack( l_track );
-        drawMaskTack( maskTrack );
+        drawMaskTack( lstHitsTrack );
     }
     else
         cleanSystem();

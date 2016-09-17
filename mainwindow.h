@@ -9,6 +9,7 @@
 #include <QStateMachine>
 #include <QFinalState>
 #include <QTimer>
+#include <QFile>
 
 
 #include <iostream>
@@ -44,8 +45,14 @@ private:
     QBrush brClean;
     QBrush brNoise;
 
+    uint32_t indInstance;
 
     QVector< QVector < QVector < QGraphicsEllipseItem * > > > vTrackSystem;
+
+    QFile fl_train_data;
+    QFile fl_test_data;
+    QTextStream out_train_data;
+    QTextStream out_test_data;
 
     // for state machine
     QStateMachine stateMachine;

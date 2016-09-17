@@ -7,7 +7,6 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     this->setWindowTitle( "Генерация данных" );
-    //ui->chbVisualization->setChecked( true );
     ui->sbNoiseLevel->setValue( 10 );
 
 
@@ -37,16 +36,31 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Initialization state machine
     // ====================================================
-    //stateMachine = new QStateMachine(this);
     createStates();
     createTransitions();
     stateMachine.setInitialState(initState);
     QTimer::singleShot(0, &stateMachine, SLOT(start()));
+
+
+    // Files and TextStream
+    // ====================================================
+    fl_train_data.setFileName("train_data.txt");
+    fl_test_data.setFileName("test_data.txt");
+    fl_train_data.open(QIODevice::WriteOnly | QIODevice::Text);
+    fl_test_data.open(QIODevice::WriteOnly | QIODevice::Text);
+    out_train_data.setDevice( &fl_train_data );
+    out_test_data.setDevice( &fl_test_data );
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+
+    out_train_data.flush();
+    out_test_data.flush();
+    fl_train_data.close();
+    fl_test_data.close();
 }
 
 void MainWindow::createConnections()
@@ -290,7 +304,7 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
 
     // text format instance
     // ==============================================================
-    std::cout << "data of track: ";
+    QString image_txt;
     for (uint8_t ch = 0; ch < nmChambers; ++ch)
     {
         for (uint8_t lr = 0; lr < nmLayers; ++lr)
@@ -305,14 +319,21 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
                     }
                 }
 
-                f_hit ? std::cout << 1 << " " : std::cout << 0 << " ";
-             }
-            //std::cout << std::endl;
+                // тут добавим еще проверку шума по списку lstHitsNoise
+
+                f_hit ? image_txt += "1 " : image_txt += "0 ";
+            }
         }
-        //std::cout << std::endl;
     }
 
-    std::cout << std::endl;
+    image_txt.chop(1);
+    QString sample("|labels " + QString::number(f_track) + " |features " + image_txt + "\n");
+    qDebug() << sample << "\n";
+
+    if (indInstance%3 == 0)
+        out_test_data << sample;
+    else
+        out_train_data << sample;
 }
 
 void MainWindow::startGenerationDataSet()
@@ -320,8 +341,8 @@ void MainWindow::startGenerationDataSet()
 
     ui->statusBar->showMessage( tr("Data generation ..."));
 
-    const uint32_t numInstance = 10000;
-    const uint32_t one_percent = numInstance/100;
+    uint32_t numInstance = ui->sbNumberInstance->value();
+    const float_t one_percent = 100.0/numInstance;
 
 
     bool f_track = true;
@@ -332,7 +353,8 @@ void MainWindow::startGenerationDataSet()
 
 
 
-    for (uint32_t cnt = 0; cnt < numInstance; ++cnt)
+    indInstance = 0;
+    for (uint32_t cnt = 0; cnt < numInstance; ++cnt, ++indInstance)
     {
         f_track = rand()%2;
 
@@ -342,14 +364,14 @@ void MainWindow::startGenerationDataSet()
 
         // debug information
         // ==============================================================
-        qDebug() << "Track #" << cnt << "\t";
+        qDebug() << "Image #" << cnt << "\t";
         qDebug() << "f_track = " << f_track;
         qDebug() << "levelNoise = " << levelNoise;
-        qDebug() << "topLevelNoise = " << topLevelNoise << "\n";
+        qDebug() << "topLevelNoise = " << topLevelNoise;
 
 
-        getInstance(f_track, levelNoise);
-        ui->prbProgress->setValue( (cnt+1)/one_percent );
+        getInstance(f_track, levelNoise);        
+        ui->prbProgress->setValue( (cnt+1)*one_percent );
     }
 
 

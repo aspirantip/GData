@@ -65,14 +65,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::createConnections()
 {
-    // PushButton
-    //connect(ui->pbDataGenStart, &QPushButton::clicked, this, &MainWindow::startGenerationDataSet);
-    //connect(ui->pbDataGenStop,  &QPushButton::clicked, this, &MainWindow::stopGenerationDataSet);
-    //connect(ui->pbExit, &QPushButton::clicked, this, &MainWindow::closeApplication);
-
     connect(&runningState, &QState::entered, this, &MainWindow::startGenerationDataSet);
     connect(&stateMachine, &QStateMachine::finished, this, &MainWindow::closeApplication);
-
 
     connect(ui->chbVisualization, &QCheckBox::stateChanged, this, &MainWindow::changeStateVisualization);
 }
@@ -163,9 +157,6 @@ void MainWindow::cleanSystem()
 {
     //qDebug() << "cleanSystem";
 
-    deleteTrack();
-
-
     for (uint8_t ch = 0; ch < nmChambers; ++ch)
     {
         for (uint8_t lr = 0; lr < nmLayers; ++lr)
@@ -180,20 +171,24 @@ void MainWindow::cleanSystem()
     ui->gv_canvas->update();
 }
 
-void MainWindow::createTrack(QLineF line)
+QGraphicsLineItem* MainWindow::createTrack(const QLineF line)
 {
-    deleteTrack();
-
     QPen penLine;
     penLine.setColor( Qt::red );
     penLine.setWidth( 1 );
 
-    track = scene->addLine( line, penLine);
+    return scene->addLine( line, penLine);
 }
 
-void MainWindow::deleteTrack()
+inline void MainWindow::deleteTrack()
 {
+    qDebug() << "deleteTrack()";
+
+    //scene->removeItem( track );
+
     if (track != nullptr){
+        qDebug() << "track != nullprt";
+
         delete track;
         track = nullptr;
     }
@@ -225,7 +220,15 @@ void MainWindow::drawMaskTack(QList<QGraphicsEllipseItem *> lstHits)
     ui->gv_canvas->update();
 }
 
-void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
+void MainWindow::drawNoiseHits(QList<QGraphicsEllipseItem *> lstHits)
+{
+    foreach (QGraphicsEllipseItem* crEllipseItem, lstHits)
+        crEllipseItem->setBrush( brNoise );
+
+    ui->gv_canvas->update();
+}
+
+void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
 {
     /*
      * 1) задать линию
@@ -240,10 +243,11 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
      *  добавить образцы просто с шумом и образцы где трек прошел только через часть детекторов
      */
 
-    const int field (diamTube*nmTubes + radTube);
 
 
     cleanSystem();
+    deleteTrack();
+
     lstHitsTrack.clear();
     lstHitsNoise.clear();
 
@@ -251,13 +255,18 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
     // type of sample
     // ==============================================================
     if (f_track){
+        const int field (diamTube*nmTubes + radTube);
         float x1 = rand() % field + 50;
         float x2 = rand() % field + 50;
         const float y1 = 0.0;
         const float y2 = 300.0;
         l_track = QLineF(x1, y1, x2, y2);
-        createTrack( l_track );
+
+        track = createTrack( l_track );
         lstHitsTrack = getMaskTrack( track );
+
+        if (!ui->chbVisualization->isChecked())
+            deleteTrack();
     }
 
 
@@ -269,10 +278,11 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
             qDebug() << "noise info:";
             qDebug() << "=====================================";
         }
+
         for (uint8_t ind = 0; ind < levelNoise; ++ind){
             uint8_t nmChamber = rand() % nmChambers;
-            uint8_t nmLayer = rand() % nmLayers;
-            uint8_t nmTube = rand() % nmTubes;
+            uint8_t nmLayer   = rand() % nmLayers;
+            uint8_t nmTube    = rand() % nmTubes;
             if (f_dbg_noise){
                 qDebug() << "||   hit: " << ind;
                 qDebug() << "||   ================================";
@@ -283,26 +293,35 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
                 qDebug() << "||";
             }
 
-
             // проверяем, что данная трубка не входит в список listHitsTrack
             // если все норм то добавляем данную трубку в lstHitsNoise
-            if (vTrackSystem[nmChamber][nmLayer][nmTube]->brush() != brHit)
-                vTrackSystem[nmChamber][nmLayer][nmTube]->setBrush( brNoise );
+            bool f_hitTrack = false;
+            foreach(QGraphicsEllipseItem* hit, lstHitsTrack){
+                if (vTrackSystem[nmChamber][nmLayer][nmTube] == hit){
+                    f_hitTrack = true;
+                    break;
+                }
+            }
+            if ( !f_hitTrack )
+                lstHitsNoise.append( vTrackSystem[nmChamber][nmLayer][nmTube] );
+
         }
 
         if (f_dbg_noise)
             qDebug() << "=====================================\n";
     }
 
+
     // visualization
     // ==============================================================
-    if (ui->chbVisualization->isChecked())
-        drawMaskTack( lstHitsTrack );
-    else
-        deleteTrack();
+    if (ui->chbVisualization->isChecked()){
+        drawNoiseHits( lstHitsNoise );
+        drawMaskTack ( lstHitsTrack );
+    }
 
 
-    // text format instance
+
+    // save image to text format
     // ==============================================================
     QString image_txt;
     for (uint8_t ch = 0; ch < nmChambers; ++ch)
@@ -312,14 +331,19 @@ void MainWindow::getInstance(bool f_track, uint8_t levelNoise)
             for (uint8_t tb = 0; tb < nmTubes; ++tb)
             {
                 bool f_hit = false;
-                foreach (QGraphicsEllipseItem * tube, lstHitsTrack) {
-                    if (vTrackSystem[ch][lr][tb] == tube){
+                foreach (QGraphicsEllipseItem* hit_track, lstHitsTrack) {
+                    if (vTrackSystem[ch][lr][tb] == hit_track){
                         f_hit = true;
                         break;
                     }
                 }
 
-                // тут добавим еще проверку шума по списку lstHitsNoise
+                foreach (QGraphicsEllipseItem* hit_noise, lstHitsNoise) {
+                    if (vTrackSystem[ch][lr][tb] == hit_noise){
+                        f_hit = true;
+                        break;
+                    }
+                }
 
                 f_hit ? image_txt += "1 " : image_txt += "0 ";
             }
@@ -392,9 +416,14 @@ void MainWindow::changeStateVisualization()
     if (ui->chbVisualization->isChecked()){
         createTrack( l_track );
         drawMaskTack( lstHitsTrack );
+        drawNoiseHits( lstHitsNoise );
     }
-    else
+    else{
+
+        deleteTrack();
         cleanSystem();
+    }
+
 }
 
 void MainWindow::closeApplication()

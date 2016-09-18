@@ -69,17 +69,19 @@ private:
     void createTransitions();
     void cleanSystem();                                         // очищаем систему
 
-    void createTrack(QLineF line);
-    void deleteTrack();
+    QGraphicsLineItem *createTrack(const QLineF line);
+    inline void deleteTrack();
+
     QList<QGraphicsEllipseItem *> getMaskTrack(QGraphicsLineItem* track);
     QList<QGraphicsEllipseItem *> lstHitsTrack;
     QList<QGraphicsEllipseItem *> lstHitsNoise;
 
     void drawSystem();                                          // рисуем систему
     void drawMaskTack(QList<QGraphicsEllipseItem *> lstHits);   // рисуем маску трека
+    void drawNoiseHits(QList<QGraphicsEllipseItem *> lstHits);  // рисуем трубки с шумовым сигналом
 
 
-    void getInstance(bool f_track, uint8_t levelNoise);
+    void getInstance(const bool f_track, const uint8_t levelNoise);
 
 
     bool getRunning() const { return f_running; }

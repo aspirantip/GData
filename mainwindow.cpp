@@ -414,7 +414,8 @@ void MainWindow::changeStateVisualization()
     qDebug() << "changeStateVisualization()";
 
     if (ui->chbVisualization->isChecked()){
-        createTrack( l_track );
+        if (lstHitsTrack.size() > 0)
+            track = createTrack( l_track );
         drawMaskTack( lstHitsTrack );
         drawNoiseHits( lstHitsNoise );
     }

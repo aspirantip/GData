@@ -13,8 +13,15 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    nnmodel.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    nnmodel.h
 
 FORMS    += mainwindow.ui
+
+
+# For CNTK
+INCLUDEPATH += /home/plotnikov/cntk/Source/Common/
+LIBS += -L /home/plotnikov/cntk/build/release/lib/ -leval -lcntkmath

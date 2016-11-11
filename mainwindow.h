@@ -3,6 +3,7 @@
 
 #include <QDebug>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QGraphicsScene>
 #include <QGraphicsEllipseItem>
 #include <QState>
@@ -13,6 +14,8 @@
 
 
 #include <iostream>
+
+#include "nnmodel.h"
 
 namespace Ui {
 class MainWindow;
@@ -45,8 +48,6 @@ private:
     QBrush brClean;
     QBrush brNoise;
 
-    uint32_t indInstance;
-
     QVector< QVector < QVector < QGraphicsEllipseItem * > > > vTrackSystem;
 
     QFile fl_train_data;
@@ -62,6 +63,10 @@ private:
     QState* stoppedState;
     QFinalState* finalState;
     bool f_running;             //State of process of data generation
+
+    bool f_loadModel;
+
+    NNModel* ClassModel;
 
 
     void createConnections();
@@ -81,7 +86,9 @@ private:
     void drawNoiseHits(QList<QGraphicsEllipseItem *> lstHits);  // рисуем трубки с шумовым сигналом
 
 
-    void getInstance(const bool f_track, const uint8_t levelNoise);
+    void getInstance(const bool f_track, const uint8_t levelNoise, std::vector<float> &image);
+    void showImage(const bool f_track);
+    void saveImage(const bool f_track, const uint32_t indImage, const std::vector<float> image);
 
 
     bool getRunning() const { return f_running; }
@@ -90,10 +97,15 @@ private:
 
 
 
+
 public slots:
     void startGenerationDataSet();
     void stopGenerationDataSet();
     void changeStateVisualization();
+
+
+    void loadNeuralNetworkModel();
+    void classifyImage();
 
     void closeApplication();
 

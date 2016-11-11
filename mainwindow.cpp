@@ -3,7 +3,8 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    f_loadModel(false)
 {
     ui->setupUi(this);
     this->setWindowTitle( "Генерация данных" );
@@ -13,8 +14,6 @@ MainWindow::MainWindow(QWidget *parent) :
     brHit   = QBrush(Qt::green);
     brNoise = QBrush(Qt::gray);
     brClean = QBrush(Qt::white);
-
-    createConnections();
 
 
     scene = new QGraphicsScene();
@@ -51,6 +50,15 @@ MainWindow::MainWindow(QWidget *parent) :
     out_train_data.setDevice( &fl_train_data );
     out_test_data.setDevice( &fl_test_data );
 
+
+    // Neural Network Model
+    // ====================================================
+    ClassModel = new NNModel(this);
+
+
+
+    createConnections();
+
 }
 
 MainWindow::~MainWindow()
@@ -69,6 +77,11 @@ void MainWindow::createConnections()
     connect(&stateMachine, &QStateMachine::finished, this, &MainWindow::closeApplication);
 
     connect(ui->chbVisualization, &QCheckBox::stateChanged, this, &MainWindow::changeStateVisualization);
+
+    connect(ui->pbLoadModel, &QPushButton::clicked, this, &MainWindow::loadNeuralNetworkModel);
+    connect(ui->pbClassify, &QPushButton::clicked, this, &MainWindow::classifyImage);
+
+    connect(ui->sbThreshold, SIGNAL(valueChanged(double)), ClassModel, SLOT(setThreshold(double)));
 }
 
 void MainWindow::createStates()
@@ -173,6 +186,8 @@ void MainWindow::cleanSystem()
 
 QGraphicsLineItem* MainWindow::createTrack(const QLineF line)
 {
+    deleteTrack();
+
     QPen penLine;
     penLine.setColor( Qt::red );
     penLine.setWidth( 1 );
@@ -182,12 +197,10 @@ QGraphicsLineItem* MainWindow::createTrack(const QLineF line)
 
 inline void MainWindow::deleteTrack()
 {
-    qDebug() << "deleteTrack()";
-
-    //scene->removeItem( track );
+    //qDebug() << "\tdeleteTrack()";
 
     if (track != nullptr){
-        qDebug() << "track != nullprt";
+        //qDebug() << "\ttrack != nullprt";
 
         delete track;
         track = nullptr;
@@ -228,7 +241,7 @@ void MainWindow::drawNoiseHits(QList<QGraphicsEllipseItem *> lstHits)
     ui->gv_canvas->update();
 }
 
-void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
+void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise, std::vector<float> &image)
 {
     /*
      * 1) задать линию
@@ -243,10 +256,8 @@ void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
      *  добавить образцы просто с шумом и образцы где трек прошел только через часть детекторов
      */
 
-
-
-    cleanSystem();
-    deleteTrack();
+    // очищаем контейнеры
+    // ==============================================================
 
     lstHitsTrack.clear();
     lstHitsNoise.clear();
@@ -264,9 +275,7 @@ void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
 
         track = createTrack( l_track );
         lstHitsTrack = getMaskTrack( track );
-
-        if (!ui->chbVisualization->isChecked())
-            deleteTrack();
+        deleteTrack();
     }
 
 
@@ -312,18 +321,9 @@ void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
     }
 
 
-    // visualization
+
+    // save image to vector
     // ==============================================================
-    if (ui->chbVisualization->isChecked()){
-        drawNoiseHits( lstHitsNoise );
-        drawMaskTack ( lstHitsTrack );
-    }
-
-
-
-    // save image to text format
-    // ==============================================================
-    QString image_txt;
     for (uint8_t ch = 0; ch < nmChambers; ++ch)
     {
         for (uint8_t lr = 0; lr < nmLayers; ++lr)
@@ -345,16 +345,43 @@ void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
                     }
                 }
 
-                f_hit ? image_txt += "1 " : image_txt += "0 ";
+                f_hit ? image.push_back(1) : image.push_back(0);
             }
         }
     }
+}
 
+void MainWindow::showImage(const bool f_track)
+{
+    cleanSystem();
+
+    if (f_track)
+        track = createTrack( l_track );
+    else
+        deleteTrack();
+
+    drawNoiseHits( lstHitsNoise );
+    drawMaskTack ( lstHitsTrack );
+}
+
+void MainWindow::saveImage(const bool f_track, const uint32_t indImage, const std::vector<float> image)
+{
+    QString image_txt;
+    foreach (float value, image) {
+        value ? image_txt += "1 " : image_txt += "0 ";
+    }
+
+    // сохранение убрать и упаковать в отдельную функцию
+    // ===========================================================
     image_txt.chop(1);
     QString sample("|labels " + QString::number(f_track) + " |features " + image_txt + "\n");
     qDebug() << sample << "\n";
 
-    if (indInstance%3 == 0)
+
+    // здесь разбиваем данные на обучающую и тестовую выборку
+    // ===========================================================
+    qDebug() << "indImage = "  << indImage;
+    if (indImage%3 == 0)
         out_test_data << sample;
     else
         out_train_data << sample;
@@ -362,7 +389,6 @@ void MainWindow::getInstance(const bool f_track, const uint8_t levelNoise)
 
 void MainWindow::startGenerationDataSet()
 {
-
     ui->statusBar->showMessage( tr("Data generation ..."));
 
     uint32_t numInstance = ui->sbNumberInstance->value();
@@ -377,8 +403,7 @@ void MainWindow::startGenerationDataSet()
 
 
 
-    indInstance = 0;
-    for (uint32_t cnt = 0; cnt < numInstance; ++cnt, ++indInstance)
+    for (uint32_t cnt = 0; cnt < numInstance; ++cnt)
     {
         f_track = rand()%2;
 
@@ -394,10 +419,19 @@ void MainWindow::startGenerationDataSet()
         qDebug() << "topLevelNoise = " << topLevelNoise;
 
 
-        getInstance(f_track, levelNoise);        
+        std::vector<float> image;
+        getInstance(f_track, levelNoise, image);
+        if (ui->chbVisualization->isChecked())
+            showImage(f_track);
+        if (ui->chbWriteImage->isChecked())
+            saveImage(f_track, cnt, image);
+
+
         ui->prbProgress->setValue( (cnt+1)*one_percent );
     }
 
+    out_test_data.flush();
+    out_train_data.flush();
 
     ui->statusBar->showMessage(tr("Data generation is complete."));
     emit stoppedGenerationDataSet();
@@ -425,6 +459,102 @@ void MainWindow::changeStateVisualization()
         cleanSystem();
     }
 
+}
+
+void MainWindow::loadNeuralNetworkModel()
+{
+    qDebug() << "MainWindow::loadNeuralNetworkModel()";
+
+    // 1# Load model
+    // =============================================
+    //const std::string modelFilePath = "/home/plotnikov/cntk/Examples/Image/MNIST/Output/Models/01_OneHidden";
+    const std::string modelFilePath = "/home/plotnikov/cntk/Projects/Models/LR_ImageTrack.dnn";
+    f_loadModel = ClassModel->loadModel( modelFilePath );
+
+    if (f_loadModel){
+        ClassModel->setThreshold( ui->sbThreshold->value() );
+        ui->statusBar->showMessage(tr("Модель загружена: %1").arg(modelFilePath.data()));
+    }
+
+}
+
+void MainWindow::classifyImage()
+{
+    qDebug() << "MainWindow::ClassifyImage()";
+
+
+    if ( !f_loadModel ){
+        QMessageBox::critical(this, tr("Critical error"),
+                             tr("Model of neural network have not been loaded."));
+        return;
+    }
+
+
+    // 2# create image
+    // =============================================
+    /*
+    std::vector<float> image {0, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                              1, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 1, 0, 0, 0};
+    */
+
+    /*
+    std::vector<float> image {0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 0, 0, 1, 0};
+    */
+
+    std::vector<float> image;
+    size_t size_ivector = ClassModel->getSizeInputVector();
+
+
+    bool f_track = rand()%2;
+    float onePercent = (nmChambers * nmLayers * nmTubes)/100.0;
+    float maxLevel = ui->sbNoiseLevel->value();
+    uint8_t topLevelNoise = onePercent * maxLevel;
+    uint8_t levelNoise = 0;
+
+
+    if (topLevelNoise)
+        levelNoise = rand() % topLevelNoise + 1;
+
+
+    // debug information
+    // ==============================================================
+    qDebug() << "\nImage of system:" << "\t";
+    qDebug() << "f_track = " << f_track;
+    qDebug() << "levelNoise = " << levelNoise;
+    qDebug() << "topLevelNoise = " << topLevelNoise;
+
+
+    getInstance(f_track, levelNoise, image);
+    showImage(f_track);
+
+
+    // проверка размерностей векторов
+    if (size_ivector != image.size()){
+        QMessageBox::critical(this, tr("Критическая ошибка"),
+                             tr("Размерность входного вектора модели нейронной сети и вектора образа не совпадает. (%1/%2)").arg(size_ivector).arg(image.size()));
+        return;
+    }
+
+
+
+    // 3# classify image
+    // =============================================
+
+    bool result = ClassModel->ClassificationImage( image );
+
+    if (result)
+        ui->statusBar->showMessage("Образ с треком.");
+    else
+        ui->statusBar->showMessage("Образ без трека.");
 }
 
 void MainWindow::closeApplication()
